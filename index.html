@@ -15,7 +15,8 @@
             <div class="header-score">
                 <span class="header-score-label">实时总分：</span>
                 <span class="header-score-value" id="final-total">76.00</span>分
-                <button class="btn-export" onclick="exportToExcel()">导出记录</button>
+                <button class="btn-export" onclick="exportToExcel()">导出</button>
+                <button class="btn-reset" onclick="resetAll()">重置</button>
             </div>
         </header>
 
@@ -25,11 +26,11 @@
                 <h2>综合场景评分（权重60%）</h2>
                 <p class="section-desc">每个场景初始分60分，满分100分，最低0分。点击按钮直接记录评分</p>
                 <div class="score-legend">
-                    <div class="legend-item"><span class="legend-score">1分</span><span class="legend-desc">不接肯定不行</span><span class="legend-points">-5</span></div>
-                    <div class="legend-item"><span class="legend-score">2分</span><span class="legend-desc">不放心接了</span><span class="legend-points">-2</span></div>
+                    <div class="legend-item"><span class="legend-score">1分</span><span class="legend-desc">不接肯定不行</span><span class="legend-points">-10</span></div>
+                    <div class="legend-item"><span class="legend-score">2分</span><span class="legend-desc">不放心接了</span><span class="legend-points">-5</span></div>
                     <div class="legend-item"><span class="legend-score">3分</span><span class="legend-desc">磕磕绊绊</span><span class="legend-points">0</span></div>
-                    <div class="legend-item"><span class="legend-score">4分</span><span class="legend-desc">符合预期</span><span class="legend-points">+2</span></div>
-                    <div class="legend-item"><span class="legend-score">5分</span><span class="legend-desc">超预期</span><span class="legend-points">+5</span></div>
+                    <div class="legend-item"><span class="legend-score">4分</span><span class="legend-desc">符合预期</span><span class="legend-points">+5</span></div>
+                    <div class="legend-item"><span class="legend-score">5分</span><span class="legend-desc">超预期</span><span class="legend-points">+10</span></div>
                 </div>
                 
                 <div class="scenarios-grid">
@@ -277,13 +278,13 @@
             <!-- 微行为评分 -->
             <section class="scoring-section">
                 <h2>微行为评分（权重40%）</h2>
-                <p class="section-desc">初始分100分，满分100分，最低0分。出现一次扣3分，点击按钮记录</p>
+                <p class="section-desc">初始分100分，满分100分，最低0分。出现一次扣2分，点击按钮记录</p>
                 
                 <div class="micro-behaviors-grid">
                     <div class="behavior-card" data-behavior="顿挫">
                         <div class="behavior-header">
                             <h3>顿挫</h3>
-                            <span class="behavior-penalty">-3分/次</span>
+                            <span class="behavior-penalty">-2分/次</span>
                         </div>
                         <div class="behavior-controls">
                             <button class="btn-decrease" onclick="changeBehaviorCount('顿挫', -1)">−</button>
@@ -298,7 +299,7 @@
                     <div class="behavior-card" data-behavior="不居中">
                         <div class="behavior-header">
                             <h3>不居中</h3>
-                            <span class="behavior-penalty">-3分/次</span>
+                            <span class="behavior-penalty">-2分/次</span>
                         </div>
                         <div class="behavior-controls">
                             <button class="btn-decrease" onclick="changeBehaviorCount('不居中', -1)">−</button>
@@ -313,7 +314,7 @@
                     <div class="behavior-card" data-behavior="无故低速">
                         <div class="behavior-header">
                             <h3>无故低速</h3>
-                            <span class="behavior-penalty">-3分/次</span>
+                            <span class="behavior-penalty">-2分/次</span>
                         </div>
                         <div class="behavior-controls">
                             <button class="btn-decrease" onclick="changeBehaviorCount('无故低速', -1)">−</button>
@@ -328,7 +329,7 @@
                     <div class="behavior-card" data-behavior="速度偏快">
                         <div class="behavior-header">
                             <h3>速度偏快</h3>
-                            <span class="behavior-penalty">-3分/次</span>
+                            <span class="behavior-penalty">-2分/次</span>
                         </div>
                         <div class="behavior-controls">
                             <button class="btn-decrease" onclick="changeBehaviorCount('速度偏快', -1)">−</button>
@@ -343,7 +344,7 @@
                     <div class="behavior-card" data-behavior="反复修正方向盘">
                         <div class="behavior-header">
                             <h3>反复修正方向盘</h3>
-                            <span class="behavior-penalty">-3分/次</span>
+                            <span class="behavior-penalty">-2分/次</span>
                         </div>
                         <div class="behavior-controls">
                             <button class="btn-decrease" onclick="changeBehaviorCount('反复修正方向盘', -1)">−</button>
@@ -358,7 +359,7 @@
                     <div class="behavior-card" data-behavior="异常降级/退出">
                         <div class="behavior-header">
                             <h3>异常降级/退出</h3>
-                            <span class="behavior-penalty">-3分/次</span>
+                            <span class="behavior-penalty">-2分/次</span>
                         </div>
                         <div class="behavior-controls">
                             <button class="btn-decrease" onclick="changeBehaviorCount('异常降级/退出', -1)">−</button>

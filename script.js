@@ -1,10 +1,10 @@
-// 场景评分映射：1分(-5), 2分(-2), 3分(0), 4分(+2), 5分(+5)
+// 场景评分映射：1分(-10), 2分(-5), 3分(0), 4分(+5), 5分(+10)
 const SCORE_MAP = {
-    1: -5,
-    2: -2,
+    1: -10,
+    2: -5,
     3: 0,
-    4: 2,
-    5: 5
+    4: 5,
+    5: 10
 };
 
 // 场景初始分
@@ -14,7 +14,7 @@ const MIN_SCENARIO_SCORE = 0;
 
 // 微行为初始分和扣分
 const INITIAL_MICRO_SCORE = 100;
-const MICRO_DEDUCTION = 3;
+const MICRO_DEDUCTION = 2;
 
 // Bonus初始分和分数
 const INITIAL_BONUS_SCORE = 0;
@@ -51,6 +51,7 @@ function recordScenario(scenarioName, score) {
     const recordId = Date.now() + Math.random(); // 确保唯一ID
     const now = new Date();
     scenarioRecords[scenarioName].push({ id: recordId, score: score, time: now });
+    
     // 记录导出事件（场景）
     const deltaPoints = SCORE_MAP[score];
     logEvent('综合场景', scenarioName, `评分${score}`, deltaPoints, now);
@@ -119,7 +120,7 @@ const behaviorCounts = {
 // 改变微行为次数
 function changeBehaviorCount(behaviorName, delta) {
     const oldCount = behaviorCounts[behaviorName];
-    const newCount = Math.max(0, oldCount + delta);
+    const newCount = Math.max(0, behaviorCounts[behaviorName] + delta);
     const actualDelta = newCount - oldCount;
     behaviorCounts[behaviorName] = newCount;
     updateBehaviorDisplay(behaviorName);
@@ -127,7 +128,7 @@ function changeBehaviorCount(behaviorName, delta) {
     // 记录导出事件（微行为），只记录实际发生的变化
     if (actualDelta !== 0) {
         const now = new Date();
-        const deltaPoints = -actualDelta * MICRO_DEDUCTION; // 每次扣3分
+        const deltaPoints = -actualDelta * MICRO_DEDUCTION; // 每次扣2分
         logEvent('微行为', behaviorName, `变化${actualDelta > 0 ? '+' : ''}${actualDelta}次`, deltaPoints, now);
     }
 }
@@ -169,7 +170,7 @@ const bonusCounts = {
 // 改变Bonus次数
 function changeBonusCount(bonusType, delta) {
     const oldCount = bonusCounts[bonusType];
-    const newCount = Math.max(0, oldCount + delta);
+    const newCount = Math.max(0, bonusCounts[bonusType] + delta);
     const actualDelta = newCount - oldCount;
     bonusCounts[bonusType] = newCount;
     updateBonusDisplay(bonusType);
@@ -268,7 +269,7 @@ function highlightScoreUpdate() {
     });
 }
 
-// 导出为“Excel”（生成 CSV 文件，Excel 可直接打开）
+// 导出为"Excel"（生成 CSV 文件，Excel 可直接打开）
 function exportToExcel() {
     if (!eventLogs.length) {
         alert('当前没有可导出的记录。');
@@ -280,6 +281,12 @@ function exportToExcel() {
 
     eventLogs.forEach(log => {
         const timeStr = new Date(log.time).toLocaleString('zh-CN', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
             hour12: false
         });
         // 使用中文逗号，避免与CSV分隔符冲突
@@ -296,17 +303,59 @@ function exportToExcel() {
         .map(row => row.map(col => `"${String(col).replace(/"/g, '""')}"`).join(','))
         .join('\r\n');
 
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    // 添加BOM以支持Excel正确显示中文
+    const BOM = '\uFEFF';
+    const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
 
     const a = document.createElement('a');
-    const dateStr = new Date().toISOString().slice(0, 10);
+    const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+    const timeStr = new Date().toTimeString().slice(0, 8).replace(/:/g, '');
     a.href = url;
-    a.download = `园区智驾体验分记录_${dateStr}.csv`;
+    a.download = `园区智驾体验分记录_${dateStr}_${timeStr}.csv`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+}
+
+// 重置所有记录
+function resetAll() {
+    if (!confirm('确定要重置所有记录吗？此操作不可恢复。')) {
+        return;
+    }
+    
+    // 清空场景记录
+    Object.keys(scenarioRecords).forEach(scenarioName => {
+        scenarioRecords[scenarioName] = [];
+        const countEl = document.getElementById(`count-${scenarioName}`);
+        if (countEl) {
+            countEl.textContent = '0';
+        }
+        updateScenarioScore(scenarioName);
+    });
+    
+    // 清空微行为记录
+    Object.keys(behaviorCounts).forEach(behaviorName => {
+        behaviorCounts[behaviorName] = 0;
+        updateBehaviorDisplay(behaviorName);
+    });
+    
+    // 清空Bonus记录
+    Object.keys(bonusCounts).forEach(bonusType => {
+        bonusCounts[bonusType] = 0;
+        updateBonusDisplay(bonusType);
+    });
+    
+    // 清空事件日志
+    eventLogs.length = 0;
+    
+    // 更新所有分数显示
+    updateMicroBehavior();
+    updateBonus();
+    updateTotalScore();
+    
+    alert('所有记录已重置！');
 }
 
 // 页面加载时初始化
