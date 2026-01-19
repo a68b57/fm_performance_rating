@@ -34,7 +34,7 @@ body {
 header {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
-    padding: 8px 10px;
+    padding: 6px 10px;
     text-align: center;
     position: sticky;
     top: 0;
@@ -43,27 +43,27 @@ header {
 }
 
 header h1 {
-    font-size: 16px;
-    margin-bottom: 2px;
+    font-size: 15px;
+    margin-bottom: 1px;
     font-weight: 600;
 }
 
 .subtitle {
-    font-size: 10px;
+    font-size: 9px;
     opacity: 0.9;
-    margin-bottom: 6px;
+    margin-bottom: 4px;
 }
 
 .header-score {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 6px;
-    margin-top: 6px;
-    padding: 6px 12px;
+    gap: 4px;
+    margin-top: 4px;
+    padding: 4px 10px;
     background: rgba(255, 255, 255, 0.2);
-    border-radius: 6px;
-    font-size: 14px;
+    border-radius: 4px;
+    font-size: 12px;
 }
 
 .header-score-label {
@@ -71,34 +71,34 @@ header h1 {
 }
 
 .header-score-value {
-    font-size: 20px;
+    font-size: 18px;
     font-weight: 700;
 }
 
 .main-content {
-    padding: 8px;
+    padding: 6px;
 }
 
 .scoring-section {
-    margin-bottom: 6px;
-    padding: 8px;
+    margin-bottom: 4px;
+    padding: 6px;
     background: #f8f9fa;
     border-radius: 6px;
     border: 1px solid #e9ecef;
 }
 
 .scoring-section h2 {
-    font-size: 14px;
-    margin-bottom: 4px;
+    font-size: 13px;
+    margin-bottom: 3px;
     color: #495057;
     font-weight: 600;
 }
 
 .section-desc {
-    font-size: 10px;
+    font-size: 9px;
     color: #6c757d;
-    margin-bottom: 6px;
-    line-height: 1.3;
+    margin-bottom: 4px;
+    line-height: 1.2;
 }
 
 .scenarios-grid {
@@ -125,13 +125,13 @@ header h1 {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 4px;
-    padding-bottom: 4px;
+    margin-bottom: 3px;
+    padding-bottom: 3px;
     border-bottom: 1px solid #e9ecef;
 }
 
 .scenario-header h3 {
-    font-size: 11px;
+    font-size: 10px;
     color: #495057;
     margin: 0;
     font-weight: 600;
@@ -151,7 +151,7 @@ header h1 {
     display: grid;
     grid-template-columns: repeat(5, 1fr);
     gap: 2px;
-    margin-bottom: 4px;
+    margin-bottom: 3px;
 }
 
 .score-btn {
@@ -159,14 +159,14 @@ header h1 {
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 4px 2px;
+    padding: 3px 2px;
     border: 1px solid #dee2e6;
     border-radius: 4px;
     background: white;
     cursor: pointer;
     transition: all 0.15s ease;
     font-size: 9px;
-    min-height: 32px;
+    min-height: 28px;
     touch-action: manipulation;
 }
 
@@ -174,13 +174,13 @@ header h1 {
 .score-legend {
     display: flex;
     justify-content: space-between;
-    gap: 4px;
-    margin-bottom: 8px;
-    padding: 6px;
+    gap: 3px;
+    margin-bottom: 6px;
+    padding: 4px;
     background: white;
     border-radius: 4px;
     border: 1px solid #e9ecef;
-    font-size: 9px;
+    font-size: 8px;
 }
 
 .legend-item {
@@ -225,7 +225,7 @@ header h1 {
 }
 
 .score-btn .score-num {
-    font-size: 18px;
+    font-size: 16px;
     font-weight: 700;
     line-height: 1;
 }
@@ -286,7 +286,7 @@ header h1 {
 }
 
 .scenario-info {
-    padding-top: 4px;
+    padding-top: 3px;
     border-top: 1px solid #e9ecef;
 }
 
@@ -294,13 +294,13 @@ header h1 {
     display: flex;
     justify-content: center;
     margin-bottom: 0;
-    font-size: 10px;
+    font-size: 9px;
     color: #495057;
 }
 
 .scenario-stats strong {
     color: #667eea;
-    font-size: 11px;
+    font-size: 10px;
 }
 
 .record-tag {
@@ -360,10 +360,10 @@ header h1 {
 
 .section-total {
     text-align: right;
-    font-size: 11px;
-    padding-top: 4px;
+    font-size: 10px;
+    padding-top: 3px;
     border-top: 1px solid #dee2e6;
-    margin-top: 4px;
+    margin-top: 3px;
 }
 
 .section-total strong {
@@ -404,7 +404,7 @@ header h1 {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 3px;
+    margin-bottom: 2px;
     padding-bottom: 2px;
     border-bottom: 1px solid #e9ecef;
 }
@@ -436,8 +436,8 @@ header h1 {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 4px;
-    margin: 3px 0;
+    gap: 3px;
+    margin: 2px 0;
 }
 
 .btn-increase,
