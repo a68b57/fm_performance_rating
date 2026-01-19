@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>园区智驾体验分 - 路书记录</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>园区智驾体验分 - 路书记录</h1>
+            <p class="subtitle">产品经理体验园区智驾并给出体验分</p>
+            <div class="header-score">
+                <span class="header-score-label">总分：</span>
+                <span class="header-score-value" id="final-total">76.00</span>分
+            </div>
+        </header>
+
+        <div class="main-content">
+            <!-- 综合场景评分 -->
+            <section class="scoring-section">
+                <h2>综合场景评分（权重60%）</h2>
+                <p class="section-desc">每个场景初始分60分，满分100分，最低0分。点击按钮直接记录评分</p>
+                <div class="score-legend">
+                    <div class="legend-item"><span class="legend-score">1分</span><span class="legend-desc">不接肯定不行</span><span class="legend-points">-5</span></div>
+                    <div class="legend-item"><span class="legend-score">2分</span><span class="legend-desc">不放心接了</span><span class="legend-points">-2</span></div>
+                    <div class="legend-item"><span class="legend-score">3分</span><span class="legend-desc">磕磕绊绊</span><span class="legend-points">0</span></div>
+                    <div class="legend-item"><span class="legend-score">4分</span><span class="legend-desc">符合预期</span><span class="legend-points">+2</span></div>
+                    <div class="legend-item"><span class="legend-score">5分</span><span class="legend-desc">超预期</span><span class="legend-points">+5</span></div>
+                </div>
+                
+                <div class="scenarios-grid">
+                    <!-- 进出园区 -->
+                    <div class="scenario-card" data-scenario="园区" data-weight="0.2">
+                        <div class="scenario-header">
+                            <h3>进出园区</h3>
+                            <span class="scenario-weight">权重20%</span>
+                        </div>
+                        <div class="score-buttons">
+                            <button class="score-btn score-1" onclick="recordScenario('园区', 1)">
+                                <span class="score-num">1</span>
+                                
+                            </button>
+                            <button class="score-btn score-2" onclick="recordScenario('园区', 2)">
+                                <span class="score-num">2</span>
+                                
+                            </button>
+                            <button class="score-btn score-3" onclick="recordScenario('园区', 3)">
+                                <span class="score-num">3</span>
+                                
+                            </button>
+                            <button class="score-btn score-4" onclick="recordScenario('园区', 4)">
+                                <span class="score-num">4</span>
+                                
+                            </button>
+                            <button class="score-btn score-5" onclick="recordScenario('园区', 5)">
+                                <span class="score-num">5</span>
+                                
+                            </button>
+                        </div>
+                        <div class="scenario-info">
+                            <div class="scenario-stats">
+                                <span>已记录: <strong id="count-园区">0</strong>次</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 进出闸机 -->
+                    <div class="scenario-card" data-scenario="闸机" data-weight="0.25">
+                        <div class="scenario-header">
+                            <h3>进出闸机</h3>
+                            <span class="scenario-weight">权重25%</span>
+                        </div>
+                        <div class="score-buttons">
+                            <button class="score-btn score-1" onclick="recordScenario('闸机', 1)">
+                                <span class="score-num">1</span>
+                                
+                            </button>
+                            <button class="score-btn score-2" onclick="recordScenario('闸机', 2)">
+                                <span class="score-num">2</span>
+                                
+                            </button>
+                            <button class="score-btn score-3" onclick="recordScenario('闸机', 3)">
+                                <span class="score-num">3</span>
+                                
+                            </button>
+                            <button class="score-btn score-4" onclick="recordScenario('闸机', 4)">
+                                <span class="score-num">4</span>
+                                
+                            </button>
+                            <button class="score-btn score-5" onclick="recordScenario('闸机', 5)">
+                                <span class="score-num">5</span>
+                                
+                            </button>
+                        </div>
+                        <div class="scenario-info">
+                            <div class="scenario-stats">
+                                <span>已记录: <strong id="count-闸机">0</strong>次</span>
+                            </div>
+                            <div class="recent-records" id="records-闸机"></div>
+                        </div>
+                    </div>
+
+                    <!-- 直角弯 -->
+                    <div class="scenario-card" data-scenario="直角弯" data-weight="0.15">
+                        <div class="scenario-header">
+                            <h3>直角弯（路沿&立柱）</h3>
+                            <span class="scenario-weight">权重15%</span>
+                        </div>
+                        <div class="score-buttons">
+                            <button class="score-btn score-1" onclick="recordScenario('直角弯', 1)">
+                                <span class="score-num">1</span>
+                                
+                                
+                            </button>
+                            <button class="score-btn score-2" onclick="recordScenario('直角弯', 2)">
+                                <span class="score-num">2</span>
+                                
+                                
+                            </button>
+                            <button class="score-btn score-3" onclick="recordScenario('直角弯', 3)">
+                                <span class="score-num">3</span>
+                                
+                                
+                            </button>
+                            <button class="score-btn score-4" onclick="recordScenario('直角弯', 4)">
+                                <span class="score-num">4</span>
+                                
+                                
+                            </button>
+                            <button class="score-btn score-5" onclick="recordScenario('直角弯', 5)">
+                                <span class="score-num">5</span>
+                                
+                                
+                            </button>
+                        </div>
+                        <div class="scenario-info">
+                            <div class="scenario-stats">
+                                <span>已记录: <strong id="count-直角弯">0</strong>次</span>
+                            </div>
+                            <div class="recent-records" id="records-直角弯"></div>
+                        </div>
+                    </div>
+
+                    <!-- 障碍物绕行 -->
+                    <div class="scenario-card" data-scenario="绕行" data-weight="0.2">
+                        <div class="scenario-header">
+                            <h3>障碍物绕行（VRU&静态）</h3>
+                            <span class="scenario-weight">权重20%</span>
+                        </div>
+                        <div class="score-buttons">
+                            <button class="score-btn score-1" onclick="recordScenario('绕行', 1)">
+                                <span class="score-num">1</span>
+                                
+                                
+                            </button>
+                            <button class="score-btn score-2" onclick="recordScenario('绕行', 2)">
+                                <span class="score-num">2</span>
+                                
+                                
+                            </button>
+                            <button class="score-btn score-3" onclick="recordScenario('绕行', 3)">
+                                <span class="score-num">3</span>
+                                
+                                
+                            </button>
+                            <button class="score-btn score-4" onclick="recordScenario('绕行', 4)">
+                                <span class="score-num">4</span>
+                                
+                                
+                            </button>
+                            <button class="score-btn score-5" onclick="recordScenario('绕行', 5)">
+                                <span class="score-num">5</span>
+                                
+                                
+                            </button>
+                        </div>
+                        <div class="scenario-info">
+                            <div class="scenario-stats">
+                                <span>已记录: <strong id="count-绕行">0</strong>次</span>
+                            </div>
+                            <div class="recent-records" id="records-绕行"></div>
+                        </div>
+                    </div>
+
+                    <!-- 会车 -->
+                    <div class="scenario-card" data-scenario="会车" data-weight="0.1">
+                        <div class="scenario-header">
+                            <h3>会车</h3>
+                            <span class="scenario-weight">权重10%</span>
+                        </div>
+                        <div class="score-buttons">
+                            <button class="score-btn score-1" onclick="recordScenario('会车', 1)">
+                                <span class="score-num">1</span>
+                                
+                                
+                            </button>
+                            <button class="score-btn score-2" onclick="recordScenario('会车', 2)">
+                                <span class="score-num">2</span>
+                                
+                                
+                            </button>
+                            <button class="score-btn score-3" onclick="recordScenario('会车', 3)">
+                                <span class="score-num">3</span>
+                                
+                                
+                            </button>
+                            <button class="score-btn score-4" onclick="recordScenario('会车', 4)">
+                                <span class="score-num">4</span>
+                                
+                                
+                            </button>
+                            <button class="score-btn score-5" onclick="recordScenario('会车', 5)">
+                                <span class="score-num">5</span>
+                                
+                                
+                            </button>
+                        </div>
+                        <div class="scenario-info">
+                            <div class="scenario-stats">
+                                <span>已记录: <strong id="count-会车">0</strong>次</span>
+                            </div>
+                            <div class="recent-records" id="records-会车"></div>
+                        </div>
+                    </div>
+
+                    <!-- 进出坡道 -->
+                    <div class="scenario-card" data-scenario="坡道" data-weight="0.1">
+                        <div class="scenario-header">
+                            <h3>进出坡道</h3>
+                            <span class="scenario-weight">权重10%</span>
+                        </div>
+                        <div class="score-buttons">
+                            <button class="score-btn score-1" onclick="recordScenario('坡道', 1)">
+                                <span class="score-num">1</span>
+                                
+                                
+                            </button>
+                            <button class="score-btn score-2" onclick="recordScenario('坡道', 2)">
+                                <span class="score-num">2</span>
+                                
+                                
+                            </button>
+                            <button class="score-btn score-3" onclick="recordScenario('坡道', 3)">
+                                <span class="score-num">3</span>
+                                
+                                
+                            </button>
+                            <button class="score-btn score-4" onclick="recordScenario('坡道', 4)">
+                                <span class="score-num">4</span>
+                                
+                                
+                            </button>
+                            <button class="score-btn score-5" onclick="recordScenario('坡道', 5)">
+                                <span class="score-num">5</span>
+                                
+                                
+                            </button>
+                        </div>
+                        <div class="scenario-info">
+                            <div class="scenario-stats">
+                                <span>已记录: <strong id="count-坡道">0</strong>次</span>
+                            </div>
+                            <div class="recent-records" id="records-坡道"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="section-total">
+                    <strong>综合场景总分: <span id="scenario-total">60.00</span>分</strong>
+                </div>
+            </section>
+
+            <!-- 微行为评分 -->
+            <section class="scoring-section">
+                <h2>微行为评分（权重40%）</h2>
+                <p class="section-desc">初始分100分，满分100分，最低0分。出现一次扣3分，点击按钮记录</p>
+                
+                <div class="micro-behaviors-grid">
+                    <div class="behavior-card" data-behavior="顿挫">
+                        <div class="behavior-header">
+                            <h3>顿挫</h3>
+                            <span class="behavior-penalty">-3分/次</span>
+                        </div>
+                        <div class="behavior-controls">
+                            <button class="btn-decrease" onclick="changeBehaviorCount('顿挫', -1)">−</button>
+                            <div class="behavior-count">
+                                <span class="count-value" id="count-顿挫">0</span>
+                                <span class="count-label">次</span>
+                            </div>
+                            <button class="btn-increase" onclick="changeBehaviorCount('顿挫', 1)">+</button>
+                        </div>
+                    </div>
+
+                    <div class="behavior-card" data-behavior="不居中">
+                        <div class="behavior-header">
+                            <h3>不居中</h3>
+                            <span class="behavior-penalty">-3分/次</span>
+                        </div>
+                        <div class="behavior-controls">
+                            <button class="btn-decrease" onclick="changeBehaviorCount('不居中', -1)">−</button>
+                            <div class="behavior-count">
+                                <span class="count-value" id="count-不居中">0</span>
+                                <span class="count-label">次</span>
+                            </div>
+                            <button class="btn-increase" onclick="changeBehaviorCount('不居中', 1)">+</button>
+                        </div>
+                    </div>
+
+                    <div class="behavior-card" data-behavior="无故低速">
+                        <div class="behavior-header">
+                            <h3>无故低速</h3>
+                            <span class="behavior-penalty">-3分/次</span>
+                        </div>
+                        <div class="behavior-controls">
+                            <button class="btn-decrease" onclick="changeBehaviorCount('无故低速', -1)">−</button>
+                            <div class="behavior-count">
+                                <span class="count-value" id="count-无故低速">0</span>
+                                <span class="count-label">次</span>
+                            </div>
+                            <button class="btn-increase" onclick="changeBehaviorCount('无故低速', 1)">+</button>
+                        </div>
+                    </div>
+
+                    <div class="behavior-card" data-behavior="速度偏快">
+                        <div class="behavior-header">
+                            <h3>速度偏快</h3>
+                            <span class="behavior-penalty">-3分/次</span>
+                        </div>
+                        <div class="behavior-controls">
+                            <button class="btn-decrease" onclick="changeBehaviorCount('速度偏快', -1)">−</button>
+                            <div class="behavior-count">
+                                <span class="count-value" id="count-速度偏快">0</span>
+                                <span class="count-label">次</span>
+                            </div>
+                            <button class="btn-increase" onclick="changeBehaviorCount('速度偏快', 1)">+</button>
+                        </div>
+                    </div>
+
+                    <div class="behavior-card" data-behavior="反复修正方向盘">
+                        <div class="behavior-header">
+                            <h3>反复修正方向盘</h3>
+                            <span class="behavior-penalty">-3分/次</span>
+                        </div>
+                        <div class="behavior-controls">
+                            <button class="btn-decrease" onclick="changeBehaviorCount('反复修正方向盘', -1)">−</button>
+                            <div class="behavior-count">
+                                <span class="count-value" id="count-反复修正方向盘">0</span>
+                                <span class="count-label">次</span>
+                            </div>
+                            <button class="btn-increase" onclick="changeBehaviorCount('反复修正方向盘', 1)">+</button>
+                        </div>
+                    </div>
+
+                    <div class="behavior-card" data-behavior="异常降级/退出">
+                        <div class="behavior-header">
+                            <h3>异常降级/退出</h3>
+                            <span class="behavior-penalty">-3分/次</span>
+                        </div>
+                        <div class="behavior-controls">
+                            <button class="btn-decrease" onclick="changeBehaviorCount('异常降级/退出', -1)">−</button>
+                            <div class="behavior-count">
+                                <span class="count-value" id="count-异常降级/退出">0</span>
+                                <span class="count-label">次</span>
+                            </div>
+                            <button class="btn-increase" onclick="changeBehaviorCount('异常降级/退出', 1)">+</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="section-total">
+                    <strong>微行为总分: <span id="micro-behavior-total">100</span>分</strong>
+                </div>
+            </section>
+
+            <!-- 用户bonus -->
+            <section class="scoring-section">
+                <h2>用户bonus（权重100%）</h2>
+                <p class="section-desc">初始分0分，最高20分，最低0分。点击按钮记录</p>
+                
+                <div class="bonus-grid">
+                    <div class="bonus-card bonus-positive" data-bonus="点赞">
+                        <div class="bonus-header">
+                            <h3>好场景用户主动点赞</h3>
+                            <span class="bonus-points">+3分/次</span>
+                        </div>
+                        <div class="bonus-controls">
+                            <button class="btn-decrease" onclick="changeBonusCount('点赞', -1)">−</button>
+                            <div class="bonus-count">
+                                <span class="count-value" id="count-点赞">0</span>
+                                <span class="count-label">次</span>
+                            </div>
+                            <button class="btn-increase" onclick="changeBonusCount('点赞', 1)">+</button>
+                        </div>
+                    </div>
+
+                    <div class="bonus-card bonus-negative" data-bonus="惩罚">
+                        <div class="bonus-header">
+                            <h3>Base case 用户额外惩罚</h3>
+                            <span class="bonus-points">-3分/次</span>
+                        </div>
+                        <div class="bonus-controls">
+                            <button class="btn-decrease" onclick="changeBonusCount('惩罚', -1)">−</button>
+                            <div class="bonus-count">
+                                <span class="count-value" id="count-惩罚">0</span>
+                                <span class="count-label">次</span>
+                            </div>
+                            <button class="btn-increase" onclick="changeBonusCount('惩罚', 1)">+</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="section-total">
+                    <strong>用户bonus总分: <span id="bonus-total">0</span>分</strong>
+                </div>
+            </section>
+
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
