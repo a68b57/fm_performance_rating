@@ -110,11 +110,34 @@ header h1 {
     border: 1px solid #e9ecef;
 }
 
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 3px;
+}
+
 .scoring-section h2 {
     font-size: 13px;
-    margin-bottom: 3px;
+    margin: 0;
     color: #495057;
     font-weight: 600;
+    flex: 1;
+}
+
+.section-total-inline {
+    font-size: 10px;
+    color: #495057;
+}
+
+.section-total-inline strong {
+    color: #495057;
+    font-weight: 600;
+}
+
+.section-total-inline span {
+    color: #667eea;
+    font-weight: 700;
 }
 
 .section-desc {
@@ -381,17 +404,7 @@ header h1 {
     font-size: 20px;
 }
 
-.section-total {
-    text-align: right;
-    font-size: 10px;
-    padding-top: 3px;
-    border-top: 1px solid #dee2e6;
-    margin-top: 3px;
-}
-
-.section-total strong {
-    color: #495057;
-}
+/* 已移除底部section-total，改为右上角显示 */
 
 .micro-behaviors-grid {
     display: grid;

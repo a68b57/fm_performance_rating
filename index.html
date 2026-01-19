@@ -23,7 +23,12 @@
         <div class="main-content">
             <!-- 综合场景评分 -->
             <section class="scoring-section">
-                <h2>综合场景评分（权重60%）</h2>
+                <div class="section-header">
+                    <h2>综合场景评分（权重60%）</h2>
+                    <div class="section-total-inline">
+                        <strong>总分: <span id="scenario-total">60.00</span>分</strong>
+                    </div>
+                </div>
                 <p class="section-desc">每个场景初始分60分，满分100分，最低0分。点击按钮直接记录评分</p>
                 <div class="score-legend">
                     <div class="legend-item"><span class="legend-score">1分</span><span class="legend-desc">不接肯定不行</span><span class="legend-points">-10</span></div>
@@ -269,15 +274,16 @@
                         </div>
                     </div>
                 </div>
-
-                <div class="section-total">
-                    <strong>综合场景总分: <span id="scenario-total">60.00</span>分</strong>
-                </div>
             </section>
 
             <!-- 微行为评分 -->
             <section class="scoring-section">
-                <h2>微行为评分（权重40%）</h2>
+                <div class="section-header">
+                    <h2>微行为评分（权重40%）</h2>
+                    <div class="section-total-inline">
+                        <strong>总分: <span id="micro-behavior-total">100</span>分</strong>
+                    </div>
+                </div>
                 <p class="section-desc">初始分100分，满分100分，最低0分。出现一次扣2分，点击按钮记录</p>
                 
                 <div class="micro-behaviors-grid">
@@ -371,15 +377,16 @@
                         </div>
                     </div>
                 </div>
-
-                <div class="section-total">
-                    <strong>微行为总分: <span id="micro-behavior-total">100</span>分</strong>
-                </div>
             </section>
 
             <!-- 用户bonus -->
             <section class="scoring-section">
-                <h2>用户bonus（权重100%）</h2>
+                <div class="section-header">
+                    <h2>用户bonus（权重100%）</h2>
+                    <div class="section-total-inline">
+                        <strong>总分: <span id="bonus-total">0</span>分</strong>
+                    </div>
+                </div>
                 <p class="section-desc">初始分0分，最高20分，最低0分。点击按钮记录</p>
                 
                 <div class="bonus-grid">
@@ -412,10 +419,6 @@
                             <button class="btn-increase" onclick="changeBonusCount('惩罚', 1)">+</button>
                         </div>
                     </div>
-                </div>
-
-                <div class="section-total">
-                    <strong>用户bonus总分: <span id="bonus-total">0</span>分</strong>
                 </div>
             </section>
 
