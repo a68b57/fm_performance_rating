@@ -32,10 +32,28 @@ const scenarioRecords = {
     '坡道': []
 };
 
+// 导出用事件日志（场景、微行为、用户bonus 的每次记录）
+const eventLogs = [];
+
+// 记录导出事件
+function logEvent(type, name, value, deltaPoints, time) {
+    eventLogs.push({
+        type,
+        name,
+        value,
+        deltaPoints,
+        time: time || new Date()
+    });
+}
+
 // 记录场景评分（直接点击按钮）
 function recordScenario(scenarioName, score) {
     const recordId = Date.now() + Math.random(); // 确保唯一ID
-    scenarioRecords[scenarioName].push({ id: recordId, score: score, time: new Date() });
+    const now = new Date();
+    scenarioRecords[scenarioName].push({ id: recordId, score: score, time: now });
+    // 记录导出事件（场景）
+    const deltaPoints = SCORE_MAP[score];
+    logEvent('综合场景', scenarioName, `评分${score}`, deltaPoints, now);
     
     // 视觉反馈
     const button = event.target.closest('.score-btn');
@@ -100,9 +118,18 @@ const behaviorCounts = {
 
 // 改变微行为次数
 function changeBehaviorCount(behaviorName, delta) {
-    behaviorCounts[behaviorName] = Math.max(0, behaviorCounts[behaviorName] + delta);
+    const oldCount = behaviorCounts[behaviorName];
+    const newCount = Math.max(0, oldCount + delta);
+    const actualDelta = newCount - oldCount;
+    behaviorCounts[behaviorName] = newCount;
     updateBehaviorDisplay(behaviorName);
     updateMicroBehavior();
+    // 记录导出事件（微行为），只记录实际发生的变化
+    if (actualDelta !== 0) {
+        const now = new Date();
+        const deltaPoints = -actualDelta * MICRO_DEDUCTION; // 每次扣3分
+        logEvent('微行为', behaviorName, `变化${actualDelta > 0 ? '+' : ''}${actualDelta}次`, deltaPoints, now);
+    }
 }
 
 // 更新微行为显示
@@ -141,9 +168,19 @@ const bonusCounts = {
 
 // 改变Bonus次数
 function changeBonusCount(bonusType, delta) {
-    bonusCounts[bonusType] = Math.max(0, bonusCounts[bonusType] + delta);
+    const oldCount = bonusCounts[bonusType];
+    const newCount = Math.max(0, oldCount + delta);
+    const actualDelta = newCount - oldCount;
+    bonusCounts[bonusType] = newCount;
     updateBonusDisplay(bonusType);
     updateBonus();
+    // 记录导出事件（用户bonus），只记录实际发生的变化
+    if (actualDelta !== 0) {
+        const now = new Date();
+        const sign = bonusType === '点赞' ? 1 : -1;
+        const deltaPoints = sign * actualDelta * BONUS_POINTS;
+        logEvent('用户bonus', bonusType, `变化${actualDelta > 0 ? '+' : ''}${actualDelta}次`, deltaPoints, now);
+    }
 }
 
 // 更新Bonus显示
@@ -229,6 +266,47 @@ function highlightScoreUpdate() {
             setTimeout(() => el.classList.remove('score-updated'), 500);
         }
     });
+}
+
+// 导出为“Excel”（生成 CSV 文件，Excel 可直接打开）
+function exportToExcel() {
+    if (!eventLogs.length) {
+        alert('当前没有可导出的记录。');
+        return;
+    }
+
+    const header = ['类型', '子项', '评分/变化', '得分变化', '时间点'];
+    const rows = [header];
+
+    eventLogs.forEach(log => {
+        const timeStr = new Date(log.time).toLocaleString('zh-CN', {
+            hour12: false
+        });
+        // 使用中文逗号，避免与CSV分隔符冲突
+        rows.push([
+            log.type,
+            log.name,
+            String(log.value).replace(/,/g, '，'),
+            (log.deltaPoints >= 0 ? '+' : '') + log.deltaPoints,
+            timeStr
+        ]);
+    });
+
+    const csvContent = rows
+        .map(row => row.map(col => `"${String(col).replace(/"/g, '""')}"`).join(','))
+        .join('\r\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement('a');
+    const dateStr = new Date().toISOString().slice(0, 10);
+    a.href = url;
+    a.download = `园区智驾体验分记录_${dateStr}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
 }
 
 // 页面加载时初始化

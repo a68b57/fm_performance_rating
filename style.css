@@ -75,6 +75,22 @@ header h1 {
     font-weight: 700;
 }
 
+.btn-export {
+    margin-left: 6px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    border: 1px solid #ffffffaa;
+    background: rgba(255, 255, 255, 0.15);
+    color: #ffffff;
+    font-size: 10px;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.btn-export:active {
+    background: rgba(255, 255, 255, 0.3);
+}
+
 .main-content {
     padding: 6px;
 }
