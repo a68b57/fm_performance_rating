@@ -71,7 +71,8 @@ header h1 {
 }
 
 .btn-export,
-.btn-reset {
+.btn-reset,
+.btn-stats {
     margin-left: 4px;
     padding: 4px 8px;
     border-radius: 4px;
@@ -82,10 +83,13 @@ header h1 {
     cursor: pointer;
     white-space: nowrap;
     touch-action: manipulation;
+    text-decoration: none;
+    display: inline-block;
 }
 
 .btn-export:active,
-.btn-reset:active {
+.btn-reset:active,
+.btn-stats:active {
     background: rgba(255, 255, 255, 0.3);
 }
 
@@ -96,6 +100,15 @@ header h1 {
 
 .btn-reset:active {
     background: rgba(220, 53, 69, 0.5);
+}
+
+.btn-stats {
+    background: rgba(40, 167, 69, 0.3);
+    border-color: rgba(40, 167, 69, 0.5);
+}
+
+.btn-stats:active {
+    background: rgba(40, 167, 69, 0.5);
 }
 
 .main-content {

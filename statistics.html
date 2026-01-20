@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>园区智驾体验分 - 统计分析</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        .stats-card {
+            background: white;
+            padding: 6px;
+            border-radius: 4px;
+            border: 1px solid #dee2e6;
+            margin-bottom: 4px;
+        }
+        
+        .stats-card h3 {
+            font-size: 11px;
+            margin-bottom: 4px;
+            color: #495057;
+            font-weight: 600;
+            padding-bottom: 3px;
+            border-bottom: 1px solid #e9ecef;
+        }
+        
+        .stats-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 2px 0;
+            font-size: 9px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        
+        .stats-row:last-child {
+            border-bottom: none;
+        }
+        
+        .stats-label {
+            color: #6c757d;
+        }
+        
+        .stats-value {
+            font-weight: 600;
+            color: #495057;
+        }
+        
+        .stats-value.highlight {
+            color: #667eea;
+            font-size: 10px;
+        }
+        
+        .satisfaction-bar {
+            width: 100%;
+            height: 4px;
+            background: #e9ecef;
+            border-radius: 2px;
+            margin-top: 2px;
+            overflow: hidden;
+        }
+        
+        .satisfaction-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #28a745 0%, #20c997 100%);
+            transition: width 0.3s ease;
+        }
+        
+        .back-btn {
+            display: inline-block;
+            padding: 4px 8px;
+            background: #667eea;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            font-size: 10px;
+            margin: 0;
+        }
+        
+        #scenario-stats-container {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 4px;
+        }
+        
+        #radarChart {
+            max-width: 100%;
+            max-height: 200px;
+        }
+        
+        .radar-container {
+            padding: 4px;
+            background: white;
+            border-radius: 4px;
+            margin-bottom: 4px;
+        }
+        
+        .header-score-label {
+            color: rgba(255, 255, 255, 0.9);
+        }
+        
+        .header-score-value {
+            font-size: 16px;
+            font-weight: 700;
+            color: #ffffff;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>统计分析</h1>
+            <div class="header-score">
+                <span class="header-score-label">实时总分：</span>
+                <span class="header-score-value" id="final-total">0.00</span>分
+                <a href="index.html" class="back-btn">返回记录</a>
+            </div>
+        </header>
+
+        <div class="main-content">
+            <!-- 综合场景统计 -->
+            <section class="scoring-section">
+                <div class="section-header">
+                    <h2>综合场景统计</h2>
+                </div>
+                
+                <div id="scenario-stats-container">
+                    <!-- 动态生成统计卡片 -->
+                </div>
+            </section>
+            
+            <!-- 雷达图 -->
+            <section class="scoring-section">
+                <div class="section-header">
+                    <h2>场景平均分雷达图</h2>
+                </div>
+                <div class="radar-container">
+                    <canvas id="radarChart"></canvas>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <script>
+        let radarChart = null;
+        
+        // 初始化雷达图
+        function initRadarChart() {
+            const ctx = document.getElementById('radarChart');
+            if (!ctx) return;
+            
+            const stats = calculateScenarioStats();
+            
+            // 准备雷达图数据（使用显示名称）
+            const labels = stats.map(s => s.name);
+            const avgScores = stats.map(s => s.avgScore);
+            
+            // 如果图表已存在，更新数据
+            if (radarChart) {
+                radarChart.data.labels = labels;
+                radarChart.data.datasets[0].data = avgScores;
+                radarChart.update();
+                return;
+            }
+            
+            // 创建新图表
+            radarChart = new Chart(ctx, {
+                type: 'radar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: '平均分',
+                        data: avgScores,
+                        backgroundColor: 'rgba(102, 126, 234, 0.2)',
+                        borderColor: 'rgba(102, 126, 234, 1)',
+                        borderWidth: 2,
+                        pointBackgroundColor: 'rgba(102, 126, 234, 1)',
+                        pointBorderColor: '#fff',
+                        pointHoverBackgroundColor: '#fff',
+                        pointHoverBorderColor: 'rgba(102, 126, 234, 1)',
+                        pointRadius: 4,
+                        pointHoverRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    aspectRatio: 1.2,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return context.dataset.label + ': ' + context.parsed.r.toFixed(2) + '分';
+                                }
+                            },
+                            titleFont: {
+                                size: 10
+                            },
+                            bodyFont: {
+                                size: 9
+                            }
+                        }
+                    },
+                    scales: {
+                        r: {
+                            beginAtZero: true,
+                            max: 5,
+                            min: 0,
+                            ticks: {
+                                stepSize: 1,
+                                font: {
+                                    size: 8
+                                },
+                                callback: function(value) {
+                                    return value + '分';
+                                }
+                            },
+                            pointLabels: {
+                                font: {
+                                    size: 9
+                                },
+                                padding: 6
+                            },
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.1)'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        // 计算实时总分
+        function calculateTotalScore() {
+            // 场景评分映射
+            const SCORE_MAP = {
+                1: -10,
+                2: -5,
+                3: 0,
+                4: 5,
+                5: 10
+            };
+            
+            // 场景初始分和限制
+            const INITIAL_SCENARIO_SCORE = 60;
+            const MAX_SCENARIO_SCORE = 100;
+            const MIN_SCENARIO_SCORE = 0;
+            
+            // 微行为初始分和扣分
+            const INITIAL_MICRO_SCORE = 100;
+            const MICRO_DEDUCTION = 2;
+            
+            // Bonus初始分和分数
+            const INITIAL_BONUS_SCORE = 0;
+            const MAX_BONUS_SCORE = 20;
+            const MIN_BONUS_SCORE = 0;
+            const BONUS_POINTS = 3;
+            
+            // 场景权重
+            const weights = {
+                '园区': 0.2,
+                '闸机': 0.25,
+                '直角弯': 0.15,
+                '绕行': 0.2,
+                '会车': 0.1,
+                '坡道': 0.1
+            };
+            
+            // 从localStorage读取数据
+            let scenarioRecords = {};
+            let behaviorCounts = {};
+            let bonusCounts = {};
+            
+            try {
+                const storedRecords = localStorage.getItem('scenarioRecords');
+                if (storedRecords) {
+                    const parsed = JSON.parse(storedRecords);
+                    Object.keys(parsed).forEach(key => {
+                        scenarioRecords[key] = parsed[key].map(r => ({
+                            ...r,
+                            time: new Date(r.time)
+                        }));
+                    });
+                }
+                
+                const storedBehaviors = localStorage.getItem('behaviorCounts');
+                if (storedBehaviors) {
+                    behaviorCounts = JSON.parse(storedBehaviors);
+                }
+                
+                const storedBonus = localStorage.getItem('bonusCounts');
+                if (storedBonus) {
+                    bonusCounts = JSON.parse(storedBonus);
+                }
+            } catch (e) {
+                console.error('读取数据失败', e);
+            }
+            
+            // 计算综合场景分（加权平均）
+            let weightedScenarioTotal = 0;
+            Object.keys(weights).forEach(scenarioName => {
+                const weight = weights[scenarioName];
+                const records = scenarioRecords[scenarioName] || [];
+                let totalChange = 0;
+                
+                records.forEach(record => {
+                    totalChange += SCORE_MAP[record.score];
+                });
+                
+                let scenarioScore = INITIAL_SCENARIO_SCORE + totalChange;
+                scenarioScore = Math.max(MIN_SCENARIO_SCORE, Math.min(MAX_SCENARIO_SCORE, scenarioScore));
+                weightedScenarioTotal += weight * scenarioScore;
+            });
+            
+            // 计算微行为得分
+            let totalDeduction = 0;
+            Object.keys(behaviorCounts).forEach(behaviorName => {
+                totalDeduction += (behaviorCounts[behaviorName] || 0) * MICRO_DEDUCTION;
+            });
+            const microScore = Math.max(0, Math.min(INITIAL_MICRO_SCORE, INITIAL_MICRO_SCORE - totalDeduction));
+            
+            // 计算Bonus得分
+            let totalBonus = 0;
+            totalBonus += (bonusCounts['点赞'] || 0) * BONUS_POINTS;
+            totalBonus -= (bonusCounts['惩罚'] || 0) * BONUS_POINTS;
+            const bonusScore = Math.max(MIN_BONUS_SCORE, Math.min(MAX_BONUS_SCORE, totalBonus));
+            
+            // 计算最终得分：总分 = 0.6*综合场景分 + 0.4*微行为得分 + 用户bonus
+            const finalScore = 0.6 * weightedScenarioTotal + 0.4 * microScore + bonusScore;
+            
+            return finalScore;
+        }
+        
+        // 更新实时总分显示
+        function updateTotalScoreDisplay() {
+            const finalScore = calculateTotalScore();
+            const finalTotalEl = document.getElementById('final-total');
+            if (finalTotalEl) {
+                finalTotalEl.textContent = finalScore.toFixed(2);
+            }
+        }
+        
+        // 场景名称映射（data-scenario -> 显示名称）
+        const scenarioNameMap = {
+            '园区': '进出园区',
+            '闸机': '进出闸机',
+            '直角弯': '直角弯（路沿&立柱）',
+            '绕行': '障碍物绕行（VRU&静态）',
+            '会车': '会车',
+            '坡道': '进出坡道'
+        };
+        
+        // 计算场景统计
+        function calculateScenarioStats() {
+            const scenarioKeys = ['园区', '闸机', '直角弯', '绕行', '会车', '坡道'];
+            const weights = {
+                '园区': 0.2,
+                '闸机': 0.25,
+                '直角弯': 0.15,
+                '绕行': 0.2,
+                '会车': 0.1,
+                '坡道': 0.1
+            };
+            
+            // 从localStorage读取数据
+            let scenarioRecords = {};
+            try {
+                const stored = localStorage.getItem('scenarioRecords');
+                if (stored) {
+                    const parsed = JSON.parse(stored);
+                    // 恢复时间对象
+                    Object.keys(parsed).forEach(key => {
+                        scenarioRecords[key] = parsed[key].map(r => ({
+                            ...r,
+                            time: new Date(r.time)
+                        }));
+                    });
+                }
+            } catch (e) {
+                console.error('读取数据失败', e);
+            }
+            
+            const stats = [];
+            
+            scenarioKeys.forEach(scenarioKey => {
+                const records = scenarioRecords[scenarioKey] || [];
+                const count = records.length;
+                const displayName = scenarioNameMap[scenarioKey] || scenarioKey;
+                
+                if (count === 0) {
+                    stats.push({
+                        key: scenarioKey,
+                        name: displayName,
+                        weight: weights[scenarioKey],
+                        count: 0,
+                        avgScore: 0,
+                        satisfaction: 0,
+                        satisfiedCount: 0
+                    });
+                    return;
+                }
+                
+                // 计算平均分
+                const totalScore = records.reduce((sum, r) => sum + r.score, 0);
+                const avgScore = totalScore / count;
+                
+                // 计算满意度（4分及以上的比例）
+                const satisfiedCount = records.filter(r => r.score >= 4).length;
+                const satisfaction = count > 0 ? (satisfiedCount / count) * 100 : 0;
+                
+                stats.push({
+                    key: scenarioKey,
+                    name: displayName,
+                    weight: weights[scenarioKey],
+                    count: count,
+                    avgScore: avgScore,
+                    satisfaction: satisfaction,
+                    satisfiedCount: satisfiedCount
+                });
+            });
+            
+            return stats;
+        }
+
+        // 渲染统计结果
+        function renderStats() {
+            const stats = calculateScenarioStats();
+            const container = document.getElementById('scenario-stats-container');
+            
+            if (!container) return;
+            
+            container.innerHTML = stats.map(stat => {
+                const satisfactionDisplay = stat.count > 0 ? stat.satisfaction.toFixed(1) : '0.0';
+                const avgScoreDisplay = stat.count > 0 ? stat.avgScore.toFixed(2) : '0.00';
+                
+                return `
+                    <div class="stats-card">
+                        <h3>${stat.name}（权重${(stat.weight * 100).toFixed(0)}%）</h3>
+                        <div class="stats-row">
+                            <span class="stats-label">记录次数：</span>
+                            <span class="stats-value">${stat.count}次</span>
+                        </div>
+                        <div class="stats-row">
+                            <span class="stats-label">平均打分：</span>
+                            <span class="stats-value highlight">${avgScoreDisplay}分</span>
+                        </div>
+                        <div class="stats-row">
+                            <span class="stats-label">满意度：</span>
+                            <span class="stats-value highlight">${satisfactionDisplay}%</span>
+                        </div>
+                        <div class="satisfaction-bar">
+                            <div class="satisfaction-fill" style="width: ${satisfactionDisplay}%"></div>
+                        </div>
+                        <div class="stats-row" style="margin-top: 4px; font-size: 9px; color: #6c757d;">
+                            <span>4分及以上：${stat.satisfiedCount}次 / 总记录：${stat.count}次</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // 页面加载时渲染
+        document.addEventListener('DOMContentLoaded', function() {
+            renderStats();
+            initRadarChart();
+            updateTotalScoreDisplay();
+            
+            // 定期更新（如果数据在变化）
+            setInterval(function() {
+                renderStats();
+                initRadarChart();
+                updateTotalScoreDisplay();
+            }, 1000);
+        });
+    </script>
+</body>
+</html>

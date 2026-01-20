@@ -46,6 +46,49 @@ function logEvent(type, name, value, deltaPoints, time) {
     });
 }
 
+// 保存数据到localStorage
+function saveToLocalStorage() {
+    try {
+        localStorage.setItem('scenarioRecords', JSON.stringify(scenarioRecords));
+        localStorage.setItem('behaviorCounts', JSON.stringify(behaviorCounts));
+        localStorage.setItem('bonusCounts', JSON.stringify(bonusCounts));
+    } catch (e) {
+        console.error('保存数据失败', e);
+    }
+}
+
+// 从localStorage加载数据
+function loadFromLocalStorage() {
+    try {
+        const storedRecords = localStorage.getItem('scenarioRecords');
+        const storedBehaviors = localStorage.getItem('behaviorCounts');
+        const storedBonus = localStorage.getItem('bonusCounts');
+        
+        if (storedRecords) {
+            const parsed = JSON.parse(storedRecords);
+            Object.keys(parsed).forEach(key => {
+                if (scenarioRecords[key]) {
+                    // 恢复时间对象
+                    scenarioRecords[key] = parsed[key].map(r => ({
+                        ...r,
+                        time: new Date(r.time)
+                    }));
+                }
+            });
+        }
+        
+        if (storedBehaviors) {
+            Object.assign(behaviorCounts, JSON.parse(storedBehaviors));
+        }
+        
+        if (storedBonus) {
+            Object.assign(bonusCounts, JSON.parse(storedBonus));
+        }
+    } catch (e) {
+        console.error('加载数据失败', e);
+    }
+}
+
 // 记录场景评分（直接点击按钮）
 function recordScenario(scenarioName, score) {
     const recordId = Date.now() + Math.random(); // 确保唯一ID
@@ -55,6 +98,9 @@ function recordScenario(scenarioName, score) {
     // 记录导出事件（场景）
     const deltaPoints = SCORE_MAP[score];
     logEvent('综合场景', scenarioName, `评分${score}`, deltaPoints, now);
+    
+    // 保存到localStorage
+    saveToLocalStorage();
     
     // 视觉反馈
     const button = event.target.closest('.score-btn');
@@ -130,6 +176,8 @@ function changeBehaviorCount(behaviorName, delta) {
         const now = new Date();
         const deltaPoints = -actualDelta * MICRO_DEDUCTION; // 每次扣2分
         logEvent('微行为', behaviorName, `变化${actualDelta > 0 ? '+' : ''}${actualDelta}次`, deltaPoints, now);
+        // 保存到localStorage
+        saveToLocalStorage();
     }
 }
 
@@ -181,6 +229,8 @@ function changeBonusCount(bonusType, delta) {
         const sign = bonusType === '点赞' ? 1 : -1;
         const deltaPoints = sign * actualDelta * BONUS_POINTS;
         logEvent('用户bonus', bonusType, `变化${actualDelta > 0 ? '+' : ''}${actualDelta}次`, deltaPoints, now);
+        // 保存到localStorage
+        saveToLocalStorage();
     }
 }
 
@@ -355,11 +405,19 @@ function resetAll() {
     updateBonus();
     updateTotalScore();
     
+    // 清除localStorage
+    localStorage.removeItem('scenarioRecords');
+    localStorage.removeItem('behaviorCounts');
+    localStorage.removeItem('bonusCounts');
+    
     alert('所有记录已重置！');
 }
 
 // 页面加载时初始化
 document.addEventListener('DOMContentLoaded', function() {
+    // 从localStorage加载数据
+    loadFromLocalStorage();
+    
     // 初始化所有场景（不再显示单个场景得分）
     Object.keys(scenarioRecords).forEach(scenarioName => {
         updateScenarioScore(scenarioName);
@@ -378,13 +436,13 @@ document.addEventListener('DOMContentLoaded', function() {
     // 初始化微行为得分
     const microScoreEl = document.getElementById('micro-behavior-total');
     if (microScoreEl) {
-        microScoreEl.textContent = INITIAL_MICRO_SCORE.toFixed(0);
+        updateMicroBehavior();
     }
     
     // 初始化Bonus得分
     const bonusScoreEl = document.getElementById('bonus-total');
     if (bonusScoreEl) {
-        bonusScoreEl.textContent = INITIAL_BONUS_SCORE.toFixed(0);
+        updateBonus();
     }
     
     // 计算并显示所有总分
