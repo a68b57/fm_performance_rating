@@ -96,6 +96,38 @@
             margin-bottom: 4px;
         }
         
+        .micro-stats-container {
+            flex: 0 0 120px;
+            padding: 6px;
+            background: white;
+            border-radius: 4px;
+            border: 1px solid #dee2e6;
+        }
+        
+        .micro-stats-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 3px 0;
+            font-size: 9px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        
+        .micro-stats-item:last-child {
+            border-bottom: none;
+        }
+        
+        .micro-stats-name {
+            color: #495057;
+            flex: 1;
+        }
+        
+        .micro-stats-count {
+            color: #667eea;
+            font-weight: 600;
+            margin-left: 4px;
+        }
+        
         .header-score-label {
             color: rgba(255, 255, 255, 0.9);
         }
@@ -105,12 +137,20 @@
             font-weight: 700;
             color: #ffffff;
         }
+        
+        .header-time {
+            font-size: 10px;
+            opacity: 0.9;
+            margin-bottom: 2px;
+            font-weight: 400;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <header>
             <h1>统计分析</h1>
+            <div class="header-time" id="current-time"></div>
             <div class="header-score">
                 <span class="header-score-label">实时总分：</span>
                 <span class="header-score-value" id="final-total">0.00</span>分
@@ -130,13 +170,21 @@
                 </div>
             </section>
             
-            <!-- 雷达图 -->
+            <!-- 雷达图和微控制统计 -->
             <section class="scoring-section">
                 <div class="section-header">
                     <h2>场景平均分雷达图</h2>
                 </div>
-                <div class="radar-container">
-                    <canvas id="radarChart"></canvas>
+                <div style="display: flex; gap: 8px;">
+                    <div class="radar-container" style="flex: 1;">
+                        <canvas id="radarChart"></canvas>
+                    </div>
+                    <div class="micro-stats-container">
+                        <h3 style="font-size: 11px; margin-bottom: 6px; color: #495057; font-weight: 600;">微控制统计</h3>
+                        <div id="micro-stats-list">
+                            <!-- 动态生成微控制统计 -->
+                        </div>
+                    </div>
                 </div>
             </section>
         </div>
@@ -246,7 +294,7 @@
             };
             
             // 场景初始分和限制
-            const INITIAL_SCENARIO_SCORE = 60;
+            const INITIAL_SCENARIO_SCORE = 50;
             const MAX_SCENARIO_SCORE = 100;
             const MIN_SCENARIO_SCORE = 0;
             
@@ -329,8 +377,8 @@
             totalBonus -= (bonusCounts['惩罚'] || 0) * BONUS_POINTS;
             const bonusScore = Math.max(MIN_BONUS_SCORE, Math.min(MAX_BONUS_SCORE, totalBonus));
             
-            // 计算最终得分：总分 = 0.6*综合场景分 + 0.4*微行为得分 + 用户bonus
-            const finalScore = 0.6 * weightedScenarioTotal + 0.4 * microScore + bonusScore;
+            // 计算最终得分：总分 = 0.6*综合场景分 + 0.3*微行为得分 + 用户bonus
+            const finalScore = 0.6 * weightedScenarioTotal + 0.3 * microScore + bonusScore;
             
             return finalScore;
         }
@@ -426,6 +474,40 @@
             return stats;
         }
 
+        // 渲染微控制统计
+        function renderMicroStats() {
+            let behaviorCounts = {};
+            try {
+                const storedBehaviors = localStorage.getItem('behaviorCounts');
+                if (storedBehaviors) {
+                    behaviorCounts = JSON.parse(storedBehaviors);
+                }
+            } catch (e) {
+                console.error('读取微行为数据失败', e);
+            }
+            
+            // 转换为数组并按次数从多到少排序
+            const microStats = Object.keys(behaviorCounts).map(name => ({
+                name: name,
+                count: behaviorCounts[name] || 0
+            })).filter(item => item.count > 0).sort((a, b) => b.count - a.count);
+            
+            const container = document.getElementById('micro-stats-list');
+            if (!container) return;
+            
+            if (microStats.length === 0) {
+                container.innerHTML = '<div style="font-size: 9px; color: #6c757d; text-align: center; padding: 8px 0;">暂无记录</div>';
+                return;
+            }
+            
+            container.innerHTML = microStats.map(item => `
+                <div class="micro-stats-item">
+                    <span class="micro-stats-name">${item.name}</span>
+                    <span class="micro-stats-count">${item.count}次</span>
+                </div>
+            `).join('');
+        }
+        
         // 渲染统计结果
         function renderStats() {
             const stats = calculateScenarioStats();
@@ -463,17 +545,41 @@
             }).join('');
         }
 
+        // 更新实时时间显示
+        function updateTime() {
+            const now = new Date();
+            const timeStr = now.toLocaleString('zh-CN', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: false
+            });
+            const timeEl = document.getElementById('current-time');
+            if (timeEl) {
+                timeEl.textContent = timeStr;
+            }
+        }
+        
         // 页面加载时渲染
         document.addEventListener('DOMContentLoaded', function() {
             renderStats();
+            renderMicroStats();
             initRadarChart();
             updateTotalScoreDisplay();
+            
+            // 立即显示时间
+            updateTime();
             
             // 定期更新（如果数据在变化）
             setInterval(function() {
                 renderStats();
+                renderMicroStats();
                 initRadarChart();
                 updateTotalScoreDisplay();
+                updateTime();
             }, 1000);
         });
     </script>

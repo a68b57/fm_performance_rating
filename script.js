@@ -8,7 +8,7 @@ const SCORE_MAP = {
 };
 
 // 场景初始分
-const INITIAL_SCENARIO_SCORE = 60;
+const INITIAL_SCENARIO_SCORE = 50;
 const MAX_SCENARIO_SCORE = 100;
 const MIN_SCENARIO_SCORE = 0;
 
@@ -52,6 +52,7 @@ function saveToLocalStorage() {
         localStorage.setItem('scenarioRecords', JSON.stringify(scenarioRecords));
         localStorage.setItem('behaviorCounts', JSON.stringify(behaviorCounts));
         localStorage.setItem('bonusCounts', JSON.stringify(bonusCounts));
+        localStorage.setItem('eventLogs', JSON.stringify(eventLogs));
     } catch (e) {
         console.error('保存数据失败', e);
     }
@@ -63,6 +64,7 @@ function loadFromLocalStorage() {
         const storedRecords = localStorage.getItem('scenarioRecords');
         const storedBehaviors = localStorage.getItem('behaviorCounts');
         const storedBonus = localStorage.getItem('bonusCounts');
+        const storedEventLogs = localStorage.getItem('eventLogs');
         
         if (storedRecords) {
             const parsed = JSON.parse(storedRecords);
@@ -83,6 +85,17 @@ function loadFromLocalStorage() {
         
         if (storedBonus) {
             Object.assign(bonusCounts, JSON.parse(storedBonus));
+        }
+        
+        if (storedEventLogs) {
+            const parsed = JSON.parse(storedEventLogs);
+            eventLogs.length = 0;
+            parsed.forEach(log => {
+                eventLogs.push({
+                    ...log,
+                    time: new Date(log.time)
+                });
+            });
         }
     } catch (e) {
         console.error('加载数据失败', e);
@@ -290,8 +303,8 @@ function updateTotalScore() {
     const bonusScoreElement = document.getElementById('bonus-total');
     const bonusScore = bonusScoreElement ? parseFloat(bonusScoreElement.textContent) || INITIAL_BONUS_SCORE : INITIAL_BONUS_SCORE;
     
-    // 计算最终得分：总分 = 0.6*综合场景分 + 0.4*微行为得分 + 用户bonus
-    const finalScore = 0.6 * weightedScenarioTotal + 0.4 * microScore + bonusScore;
+    // 计算最终得分：总分 = 0.6*综合场景分 + 0.3*微行为得分 + 用户bonus
+    const finalScore = 0.6 * weightedScenarioTotal + 0.3 * microScore + bonusScore;
     
     // 更新显示
     const scenarioTotalEl = document.getElementById('scenario-total');
@@ -321,6 +334,24 @@ function highlightScoreUpdate() {
 
 // 导出为"Excel"（生成 CSV 文件，Excel 可直接打开）
 function exportToExcel() {
+    // 确保从localStorage重新加载eventLogs（防止页面刷新后丢失）
+    try {
+        const storedEventLogs = localStorage.getItem('eventLogs');
+        if (storedEventLogs) {
+            const parsed = JSON.parse(storedEventLogs);
+            eventLogs.length = 0;
+            parsed.forEach(log => {
+                eventLogs.push({
+                    ...log,
+                    time: new Date(log.time)
+                });
+            });
+        }
+    } catch (e) {
+        console.error('加载导出数据失败', e);
+    }
+    
+    // 使用保存的eventLogs
     if (!eventLogs.length) {
         alert('当前没有可导出的记录。');
         return;
@@ -409,6 +440,7 @@ function resetAll() {
     localStorage.removeItem('scenarioRecords');
     localStorage.removeItem('behaviorCounts');
     localStorage.removeItem('bonusCounts');
+    localStorage.removeItem('eventLogs');
     
     alert('所有记录已重置！');
 }
@@ -447,4 +479,28 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // 计算并显示所有总分
     updateTotalScore();
+    
+    // 初始化实时时间显示
+    function updateTime() {
+        const now = new Date();
+        const timeStr = now.toLocaleString('zh-CN', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: false
+        });
+        const timeEl = document.getElementById('current-time');
+        if (timeEl) {
+            timeEl.textContent = timeStr;
+        }
+    }
+    
+    // 立即显示时间
+    updateTime();
+    
+    // 每秒更新一次
+    setInterval(updateTime, 1000);
 });
