@@ -11,8 +11,8 @@
 <body>
     <div class="container">
         <header>
-            <h1>园区智驾体验分记录工具</h1>
             <div class="header-time" id="current-time"></div>
+            <h1>园区智驾体验分记录工具</h1>
             <div class="header-score">
                 <span class="header-score-label">实时总分：</span>
                 <span class="header-score-value" id="final-total">76.00</span>分
@@ -26,12 +26,12 @@
             <!-- 综合场景评分 -->
             <section class="scoring-section">
                 <div class="section-header">
-                    <h2>综合场景评分（权重60%）</h2>
+                    <h2>综合场景评分</h2>
                     <div class="section-total-inline">
                         <strong>总分: <span id="scenario-total">60.00</span>分</strong>
                     </div>
                 </div>
-                <p class="section-desc">每个场景初始分60分，满分100分，最低0分。点击按钮直接记录评分</p>
+                <p class="section-desc">每个场景初始分50分，满分100分，最低0分。点击按钮直接记录评分</p>
                 <div class="score-legend">
                     <div class="legend-item"><span class="legend-score">1分</span><span class="legend-desc">不接肯定不行</span><span class="legend-points">-10</span></div>
                     <div class="legend-item"><span class="legend-score">2分</span><span class="legend-desc">不放心接了</span><span class="legend-points">-5</span></div>
@@ -281,7 +281,7 @@
             <!-- 微行为评分 -->
             <section class="scoring-section">
                 <div class="section-header">
-                    <h2>微行为评分（权重30%）</h2>
+                    <h2>微行为评分</h2>
                     <div class="section-total-inline">
                         <strong>总分: <span id="micro-behavior-total">100</span>分</strong>
                     </div>
@@ -384,7 +384,7 @@
             <!-- 用户bonus -->
             <section class="scoring-section">
                 <div class="section-header">
-                    <h2>用户bonus（权重100%）</h2>
+                    <h2>用户bonus</h2>
                     <div class="section-total-inline">
                         <strong>总分: <span id="bonus-total">0</span>分</strong>
                     </div>

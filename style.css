@@ -46,8 +46,11 @@ header h1 {
 .header-time {
     font-size: 10px;
     opacity: 0.9;
-    margin-bottom: 2px;
     font-weight: 400;
+    position: absolute;
+    top: 4px;
+    left: 10px;
+    z-index: 101;
 }
 
 .subtitle {
