@@ -193,7 +193,9 @@ header h1 {
 .scenario-header {
     display: flex;
     justify-content: space-between;
-    align-items: center;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 4px 6px;
     margin-bottom: 3px;
     padding-bottom: 3px;
     border-bottom: 1px solid #e9ecef;
@@ -205,6 +207,33 @@ header h1 {
     margin: 0;
     font-weight: 600;
     line-height: 1.2;
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.scenario-meta {
+    display: flex;
+    align-items: center;
+    flex-wrap: nowrap;
+    gap: 3px;
+    flex-shrink: 0;
+    font-size: 9px;
+    color: #495057;
+}
+
+.scenario-meta-sep {
+    color: #adb5bd;
+    font-weight: 400;
+}
+
+.scenario-record {
+    white-space: nowrap;
+}
+
+.scenario-record strong {
+    color: #667eea;
+    font-size: 10px;
+    font-weight: 700;
 }
 
 .scenario-weight {
@@ -220,7 +249,36 @@ header h1 {
     display: grid;
     grid-template-columns: repeat(5, 1fr);
     gap: 2px;
-    margin-bottom: 3px;
+    margin-bottom: 2px;
+}
+
+.scenario-undo {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 0;
+    margin-bottom: 0;
+}
+
+.btn-undo-scenario {
+    padding: 2px 8px;
+    font-size: 9px;
+    line-height: 1.2;
+    color: #667eea;
+    background: #f0f2ff;
+    border: 1px solid #c5cae8;
+    border-radius: 3px;
+    cursor: pointer;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.btn-undo-scenario:active:not(:disabled) {
+    background: #e0e4ff;
+}
+
+.btn-undo-scenario:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
 }
 
 .score-btn {
@@ -352,24 +410,6 @@ header h1 {
     background: #20c997;
     color: white;
     border-color: #20c997;
-}
-
-.scenario-info {
-    padding-top: 3px;
-    border-top: 1px solid #e9ecef;
-}
-
-.scenario-stats {
-    display: flex;
-    justify-content: center;
-    margin-bottom: 0;
-    font-size: 9px;
-    color: #495057;
-}
-
-.scenario-stats strong {
-    color: #667eea;
-    font-size: 10px;
 }
 
 .record-tag {

@@ -130,6 +130,29 @@ function recordScenario(scenarioName, score) {
     highlightScoreUpdate();
 }
 
+// 撤销该子场景最近一次评分记录
+function undoLastScenarioRecord(scenarioName) {
+    const arr = scenarioRecords[scenarioName];
+    if (!arr || arr.length === 0) {
+        return;
+    }
+
+    arr.pop();
+
+    // 从 eventLogs 中移除该子场景最近一条「综合场景」记录（与 pop 顺序一致）
+    for (let i = eventLogs.length - 1; i >= 0; i--) {
+        if (eventLogs[i].type === '综合场景' && eventLogs[i].name === scenarioName) {
+            eventLogs.splice(i, 1);
+            break;
+        }
+    }
+
+    saveToLocalStorage();
+    updateScenarioScore(scenarioName);
+    updateRecentRecords(scenarioName);
+    highlightScoreUpdate();
+}
+
 // 删除场景记录
 function removeScenarioRecord(scenarioName, recordId) {
     scenarioRecords[scenarioName] = scenarioRecords[scenarioName].filter(r => r.id !== recordId);
@@ -156,6 +179,11 @@ function updateScenarioScore(scenarioName) {
     if (countEl) {
         countEl.textContent = records.length;
     }
+
+    const undoBtn = document.getElementById(`undo-${scenarioName}`);
+    if (undoBtn) {
+        undoBtn.disabled = records.length === 0;
+    }
     
     // 更新总分
     updateTotalScore();
@@ -173,7 +201,10 @@ const behaviorCounts = {
     '无故低速': 0,
     '速度偏快': 0,
     '反复修正方向盘': 0,
-    '异常降级/退出': 0
+    '异常降级/退出': 0,
+    '溜车': 0,
+    '停止位置远': 0,
+    '行泊切换异常': 0
 };
 
 // 改变微行为次数
