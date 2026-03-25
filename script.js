@@ -180,6 +180,19 @@ function stopVoiceStream() {
     }
 }
 
+// 长按交互里用于“松开就结束”的统一停止逻辑
+function stopVoiceRecording() {
+    try {
+        if (voiceMediaRecorder && voiceMediaRecorder.state !== 'inactive') {
+            voiceMediaRecorder.stop();
+        }
+    } catch (e) {
+        // ignore
+    }
+    // 兜底：停止音频流，避免录音继续占用麦克风
+    stopVoiceStream();
+}
+
 function closeVoiceModal() {
     if (voiceMediaRecorder && voiceMediaRecorder.state === 'recording') {
         try {
@@ -311,9 +324,7 @@ function attachVoiceModalHandlers() {
 
     if (stop) {
         stop.onclick = () => {
-            if (voiceMediaRecorder && voiceMediaRecorder.state === 'recording') {
-                voiceMediaRecorder.stop();
-            }
+            stopVoiceRecording();
         };
     }
 
@@ -347,12 +358,15 @@ function attachVoiceModalHandlers() {
 
                 // 已开始：松开停止（触发 onstop 自动保存）
                 voiceHoldStarted = false;
-                if (stop) stop.click();
+                stopVoiceRecording();
             };
 
             // 松开/取消时统一处理
             document.addEventListener('pointerup', onUp, { once: true });
             document.addEventListener('pointercancel', onUp, { once: true });
+            // 兜底：在按钮自身上也绑定一次（某些移动端 pointerup 可能不如预期触发到 document）
+            hold.addEventListener('pointerup', onUp, { once: true, passive: true });
+            hold.addEventListener('pointercancel', onUp, { once: true, passive: true });
         }, { passive: false });
     }
 
