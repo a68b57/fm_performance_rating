@@ -35,15 +35,373 @@ const scenarioRecords = {
 // 导出用事件日志（场景、微行为、用户bonus 的每次记录）
 const eventLogs = [];
 
-// 记录导出事件
-function logEvent(type, name, value, deltaPoints, time) {
-    eventLogs.push({
+// 子场景展示名（语音弹层等）
+const SCENARIO_LABELS = {
+    '园区': '进出园区',
+    '闸机': '进出闸机',
+    '直角弯': '直角弯（路沿&立柱）',
+    '绕行': '绕行VRU/静态',
+    '会车': '会车',
+    '坡道': '进出坡道'
+};
+
+// 记录导出事件（extra 可含 recordId 等）
+function logEvent(type, name, value, deltaPoints, time, extra) {
+    const entry = {
         type,
         name,
         value,
         deltaPoints,
         time: time || new Date()
+    };
+    if (extra && typeof extra === 'object') {
+        Object.assign(entry, extra);
+    }
+    eventLogs.push(entry);
+}
+
+// ---------- 低分语音：IndexedDB 存音频（本机） ----------
+const AUDIO_DB_NAME = 'park_ida_voice_v1';
+const AUDIO_STORE = 'clips';
+
+function openAudioDB() {
+    return new Promise((resolve, reject) => {
+        const req = indexedDB.open(AUDIO_DB_NAME, 1);
+        req.onerror = () => reject(req.error);
+        req.onsuccess = () => resolve(req.result);
+        req.onupgradeneeded = (e) => {
+            const db = e.target.result;
+            if (!db.objectStoreNames.contains(AUDIO_STORE)) {
+                db.createObjectStore(AUDIO_STORE, { keyPath: 'recordId' });
+            }
+        };
     });
+}
+
+function saveAudioClip(recordId, scenarioName, blob, mimeType) {
+    return openAudioDB().then((db) => new Promise((resolve, reject) => {
+        const tx = db.transaction(AUDIO_STORE, 'readwrite');
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+        tx.objectStore(AUDIO_STORE).put({
+            recordId,
+            scenarioName,
+            blob,
+            mimeType: mimeType || blob.type || 'audio/webm',
+            createdAt: Date.now()
+        });
+    }));
+}
+
+function deleteAudioClip(recordId) {
+    return openAudioDB().then((db) => new Promise((resolve, reject) => {
+        const tx = db.transaction(AUDIO_STORE, 'readwrite');
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+        tx.objectStore(AUDIO_STORE).delete(recordId);
+    }));
+}
+
+function clearAllAudioClips() {
+    return openAudioDB().then((db) => new Promise((resolve, reject) => {
+        const tx = db.transaction(AUDIO_STORE, 'readwrite');
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+        tx.objectStore(AUDIO_STORE).clear();
+    }));
+}
+
+function getAudioClip(recordId) {
+    return openAudioDB().then((db) => new Promise((resolve, reject) => {
+        const tx = db.transaction(AUDIO_STORE, 'readonly');
+        tx.oncomplete = () => {};
+        tx.onerror = () => reject(tx.error);
+        const req = tx.objectStore(AUDIO_STORE).get(recordId);
+        req.onsuccess = () => resolve(req.result || null);
+        req.onerror = () => reject(req.error);
+    })).catch(() => null);
+}
+
+function detectAudioExt(mimeType) {
+    const t = (mimeType || '').toLowerCase();
+    if (t.includes('mp4') || t.includes('m4a')) return 'm4a';
+    if (t.includes('ogg')) return 'ogg';
+    if (t.includes('wav')) return 'wav';
+    return 'webm';
+}
+
+let voiceModalPending = null;
+let voiceMediaRecorder = null;
+let voiceMediaStream = null;
+let voiceChunks = [];
+let voiceLastBlob = null;
+let voiceMimeType = '';
+
+// 聊天工具式交互：按住开始录音，松开停止并自动保存
+let voiceAutoSaveOnStop = true;
+let voiceHoldTimer = null;
+let voiceHolding = false;
+let voiceHoldStarted = false;
+const VOICE_HOLD_MS = 350;
+
+function pickAudioMimeType() {
+    const c = [
+        'audio/webm;codecs=opus',
+        'audio/webm',
+        'audio/mp4',
+        'audio/ogg;codecs=opus'
+    ];
+    for (let i = 0; i < c.length; i++) {
+        if (typeof MediaRecorder !== 'undefined' && MediaRecorder.isTypeSupported(c[i])) {
+            return c[i];
+        }
+    }
+    return '';
+}
+
+function voiceModalSetStep(step) {
+    const idle = document.getElementById('voice-modal-step-idle');
+    const rec = document.getElementById('voice-modal-step-recording');
+    const rev = document.getElementById('voice-modal-step-review');
+    const st = document.getElementById('voice-modal-status');
+    if (st) st.textContent = '';
+    [idle, rec, rev].forEach((el) => {
+        if (el) el.classList.add('voice-modal-hidden');
+    });
+    if (step === 'idle' && idle) idle.classList.remove('voice-modal-hidden');
+    if (step === 'recording' && rec) rec.classList.remove('voice-modal-hidden');
+    if (step === 'review' && rev) rev.classList.remove('voice-modal-hidden');
+}
+
+function stopVoiceStream() {
+    if (voiceMediaStream) {
+        voiceMediaStream.getTracks().forEach((t) => t.stop());
+        voiceMediaStream = null;
+    }
+}
+
+function closeVoiceModal() {
+    if (voiceMediaRecorder && voiceMediaRecorder.state === 'recording') {
+        try {
+            voiceMediaRecorder.stop();
+        } catch (e) { /* ignore */ }
+    }
+    voiceMediaRecorder = null;
+    stopVoiceStream();
+    voiceChunks = [];
+    voiceLastBlob = null;
+    voiceMimeType = '';
+    voiceModalPending = null;
+    const modal = document.getElementById('voice-modal');
+    if (modal) {
+        modal.classList.remove('voice-modal-open');
+        modal.setAttribute('aria-hidden', 'true');
+    }
+    voiceModalSetStep('idle');
+}
+
+function openVoiceModal(scenarioName, score, recordId) {
+    voiceModalPending = { scenarioName, score, recordId };
+    voiceAutoSaveOnStop = true;
+    voiceHolding = false;
+    voiceHoldStarted = false;
+    voiceHoldTimer = null;
+    const ctx = document.getElementById('voice-modal-context');
+    if (ctx) {
+        const label = SCENARIO_LABELS[scenarioName] || scenarioName;
+        ctx.textContent = `${label} · 评分${score}分`;
+    }
+    voiceModalSetStep('idle');
+    const modal = document.getElementById('voice-modal');
+    if (modal) {
+        modal.classList.add('voice-modal-open');
+        modal.setAttribute('aria-hidden', 'false');
+    }
+}
+
+function attachVoiceModalHandlers() {
+    const skip = document.getElementById('btn-voice-skip');
+    const hold = document.getElementById('btn-voice-hold');
+    const start = document.getElementById('btn-voice-start');
+    const stop = document.getElementById('btn-voice-stop');
+    const play = document.getElementById('btn-voice-play');
+    const redo = document.getElementById('btn-voice-redo');
+    const save = document.getElementById('btn-voice-save');
+    const backdrop = document.getElementById('voice-modal-backdrop');
+
+    if (skip) skip.onclick = () => closeVoiceModal();
+    if (backdrop) {
+        backdrop.onclick = () => {
+            const rec = document.getElementById('voice-modal-step-recording');
+            if (rec && !rec.classList.contains('voice-modal-hidden')) return;
+            closeVoiceModal();
+        };
+    }
+
+    if (start) {
+        start.onclick = async () => {
+            const st = document.getElementById('voice-modal-status');
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                if (st) st.textContent = '当前环境无法使用麦克风（需 HTTPS 或 localhost）。';
+                return;
+            }
+            if (typeof MediaRecorder === 'undefined') {
+                if (st) st.textContent = '当前浏览器不支持录音。';
+                return;
+            }
+            // 用户松开得过快：不再启动录音
+            if (!voiceHolding) return;
+            voiceMimeType = pickAudioMimeType();
+            try {
+                stopVoiceStream();
+                voiceMediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                voiceChunks = [];
+                const options = voiceMimeType ? { mimeType: voiceMimeType } : {};
+                voiceMediaRecorder = new MediaRecorder(voiceMediaStream, options);
+                if (!voiceMimeType && voiceMediaRecorder.mimeType) {
+                    voiceMimeType = voiceMediaRecorder.mimeType;
+                }
+                voiceMediaRecorder.ondataavailable = (e) => {
+                    if (e.data && e.data.size > 0) voiceChunks.push(e.data);
+                };
+                voiceMediaRecorder.onstop = () => {
+                    stopVoiceStream();
+                    voiceLastBlob = new Blob(voiceChunks, { type: voiceMimeType || 'audio/webm' });
+
+                    // 长按交互：松开后自动保存并关闭弹层，不进入复杂“试听/重录/保存”流程。
+                    if (voiceAutoSaveOnStop) {
+                        voiceAutoSaveOnStop = false;
+
+                        const pending = voiceModalPending;
+                        const scenarioName = pending ? pending.scenarioName : null;
+                        const recordId = pending ? pending.recordId : null;
+
+                        const arr = scenarioName ? scenarioRecords[scenarioName] : null;
+                        const rec = arr && recordId != null
+                            ? arr.find((r) => r.id === recordId)
+                            : null;
+
+                        if (!scenarioName || recordId == null || !voiceLastBlob) {
+                            closeVoiceModal();
+                            return;
+                        }
+
+                        saveAudioClip(recordId, scenarioName, voiceLastBlob, voiceMimeType)
+                            .then(() => {
+                                if (rec) rec.hasAudio = true;
+                                saveToLocalStorage();
+                            })
+                            .catch(() => {})
+                            .finally(() => {
+                                closeVoiceModal();
+                            });
+                        return;
+                    }
+
+                    voiceModalSetStep('review');
+                };
+                voiceMediaRecorder.start();
+                voiceModalSetStep('recording');
+            } catch (err) {
+                if (st) st.textContent = '无法访问麦克风：' + (err.message || '请检查权限');
+                stopVoiceStream();
+            }
+        };
+    }
+
+    if (stop) {
+        stop.onclick = () => {
+            if (voiceMediaRecorder && voiceMediaRecorder.state === 'recording') {
+                voiceMediaRecorder.stop();
+            }
+        };
+    }
+
+    // 聊天工具式交互：按住录音（超过阈值才开始），松开则停止并保存
+    if (hold) {
+        hold.addEventListener('pointerdown', (e) => {
+            // 只响应主指针
+            if (e.pointerType === 'mouse' && e.button !== 0) return;
+            e.preventDefault();
+            voiceHolding = true;
+            voiceHoldStarted = false;
+            if (voiceHoldTimer) clearTimeout(voiceHoldTimer);
+
+            voiceHoldTimer = setTimeout(() => {
+                if (!voiceHolding) return;
+                voiceHoldStarted = true;
+                voiceAutoSaveOnStop = true;
+                if (start) start.click();
+            }, VOICE_HOLD_MS);
+
+            const onUp = () => {
+                voiceHolding = false;
+                if (voiceHoldTimer) clearTimeout(voiceHoldTimer);
+                voiceHoldTimer = null;
+
+                // 还没真正开始录音：取消并关闭弹层
+                if (!voiceHoldStarted) {
+                    closeVoiceModal();
+                    return;
+                }
+
+                // 已开始：松开停止（触发 onstop 自动保存）
+                voiceHoldStarted = false;
+                if (stop) stop.click();
+            };
+
+            // 松开/取消时统一处理
+            document.addEventListener('pointerup', onUp, { once: true });
+            document.addEventListener('pointercancel', onUp, { once: true });
+        }, { passive: false });
+    }
+
+    if (play) {
+        play.onclick = () => {
+            if (!voiceLastBlob) return;
+            const url = URL.createObjectURL(voiceLastBlob);
+            const a = new Audio(url);
+            a.play().finally(() => setTimeout(() => URL.revokeObjectURL(url), 2000));
+        };
+    }
+
+    if (redo) {
+        redo.onclick = () => {
+            voiceLastBlob = null;
+            voiceChunks = [];
+            voiceModalSetStep('idle');
+        };
+    }
+
+    if (save) {
+        save.onclick = () => {
+            if (!voiceModalPending || !voiceLastBlob) return;
+            const { scenarioName, recordId } = voiceModalPending;
+            const arr = scenarioRecords[scenarioName];
+            const rec = arr ? arr.find((r) => r.id === recordId) : null;
+            if (!rec) {
+                closeVoiceModal();
+                return;
+            }
+            saveAudioClip(recordId, scenarioName, voiceLastBlob, voiceMimeType)
+                .then(() => {
+                    rec.hasAudio = true;
+                    saveToLocalStorage();
+                    closeVoiceModal();
+                })
+                .catch((e) => {
+                    const st = document.getElementById('voice-modal-status');
+                    if (st) st.textContent = '保存失败：' + (e.message || '');
+                });
+        };
+    }
+}
+
+function logVoiceNoteForExport(log) {
+    if (log.type !== '综合场景' || log.recordId == null) return '';
+    const arr = scenarioRecords[log.name] || [];
+    const r = arr.find((x) => x.id === log.recordId);
+    return r && r.hasAudio ? '有' : '';
 }
 
 // 保存数据到localStorage
@@ -73,7 +431,8 @@ function loadFromLocalStorage() {
                     // 恢复时间对象
                     scenarioRecords[key] = parsed[key].map(r => ({
                         ...r,
-                        time: new Date(r.time)
+                        time: new Date(r.time),
+                        hasAudio: !!r.hasAudio
                     }));
                 }
             });
@@ -106,17 +465,23 @@ function loadFromLocalStorage() {
 function recordScenario(scenarioName, score) {
     const recordId = Date.now() + Math.random(); // 确保唯一ID
     const now = new Date();
-    scenarioRecords[scenarioName].push({ id: recordId, score: score, time: now });
+    scenarioRecords[scenarioName].push({
+        id: recordId,
+        score: score,
+        time: now,
+        hasAudio: false
+    });
     
     // 记录导出事件（场景）
     const deltaPoints = SCORE_MAP[score];
-    logEvent('综合场景', scenarioName, `评分${score}`, deltaPoints, now);
+    logEvent('综合场景', scenarioName, `评分${score}`, deltaPoints, now, { recordId });
     
     // 保存到localStorage
     saveToLocalStorage();
     
     // 视觉反馈
-    const button = event.target.closest('.score-btn');
+    const ev = typeof event !== 'undefined' ? event : (typeof window !== 'undefined' ? window.event : null);
+    const button = ev && ev.target && ev.target.closest ? ev.target.closest('.score-btn') : null;
     if (button) {
         button.classList.add('clicked');
         setTimeout(() => button.classList.remove('clicked'), 300);
@@ -128,6 +493,11 @@ function recordScenario(scenarioName, score) {
     
     // 添加分数更新动画效果
     highlightScoreUpdate();
+
+    // 低分（1、2）可录语音备注
+    if (score === 1 || score === 2) {
+        openVoiceModal(scenarioName, score, recordId);
+    }
 }
 
 // 撤销该子场景最近一次评分记录
@@ -137,7 +507,10 @@ function undoLastScenarioRecord(scenarioName) {
         return;
     }
 
-    arr.pop();
+    const removed = arr.pop();
+    if (removed && removed.id != null) {
+        deleteAudioClip(removed.id).catch(() => {});
+    }
 
     // 从 eventLogs 中移除该子场景最近一条「综合场景」记录（与 pop 顺序一致）
     for (let i = eventLogs.length - 1; i >= 0; i--) {
@@ -156,6 +529,7 @@ function undoLastScenarioRecord(scenarioName) {
 // 删除场景记录
 function removeScenarioRecord(scenarioName, recordId) {
     scenarioRecords[scenarioName] = scenarioRecords[scenarioName].filter(r => r.id !== recordId);
+    deleteAudioClip(recordId).catch(() => {});
     updateScenarioScore(scenarioName);
     updateRecentRecords(scenarioName);
     highlightScoreUpdate();
@@ -363,8 +737,8 @@ function highlightScoreUpdate() {
     });
 }
 
-// 导出为"Excel"（生成 CSV 文件，Excel 可直接打开）
-function exportToExcel() {
+// 导出为"Excel"（生成 CSV 文件；若有语音则导出 ZIP: CSV+语音）
+async function exportToExcel() {
     // 确保从localStorage重新加载eventLogs（防止页面刷新后丢失）
     try {
         const storedEventLogs = localStorage.getItem('eventLogs');
@@ -388,7 +762,7 @@ function exportToExcel() {
         return;
     }
 
-    const header = ['类型', '子项', '评分/变化', '得分变化', '时间点'];
+    const header = ['类型', '子项', '评分/变化', '得分变化', '时间点', '语音备注'];
     const rows = [header];
 
     eventLogs.forEach(log => {
@@ -407,7 +781,8 @@ function exportToExcel() {
             log.name,
             String(log.value).replace(/,/g, '，'),
             (log.deltaPoints >= 0 ? '+' : '') + log.deltaPoints,
-            timeStr
+            timeStr,
+            logVoiceNoteForExport(log)
         ]);
     });
 
@@ -417,18 +792,58 @@ function exportToExcel() {
 
     // 添加BOM以支持Excel正确显示中文
     const BOM = '\uFEFF';
-    const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-
-    const a = document.createElement('a');
     const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
     const timeStr = new Date().toTimeString().slice(0, 8).replace(/:/g, '');
-    a.href = url;
-    a.download = `园区智驾体验分记录_${dateStr}_${timeStr}.csv`;
+
+    const voiceLogs = eventLogs.filter(log =>
+        log.type === '综合场景' &&
+        log.recordId != null &&
+        logVoiceNoteForExport(log) === '有'
+    );
+
+    // 无语音时保持原 CSV 下载
+    if (!voiceLogs.length) {
+        const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `园区智驾体验分记录_${dateStr}_${timeStr}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        return;
+    }
+
+    if (typeof JSZip === 'undefined') {
+        alert('检测到语音备注，但缺少打包组件，暂无法导出语音文件。请刷新页面后重试。');
+        return;
+    }
+
+    const zip = new JSZip();
+    zip.file(`园区智驾体验分记录_${dateStr}_${timeStr}.csv`, BOM + csvContent);
+    const voiceFolder = zip.folder('语音备注');
+
+    for (let i = 0; i < voiceLogs.length; i++) {
+        const log = voiceLogs[i];
+        const clip = await getAudioClip(log.recordId);
+        if (!clip || !clip.blob) continue;
+        const ext = detectAudioExt(clip.mimeType || clip.blob.type);
+        const safeScenario = String(log.name).replace(/[\\/:*?"<>|]/g, '_');
+        const ts = new Date(log.time).toISOString().replace(/[:.]/g, '-');
+        const filename = `${String(i + 1).padStart(2, '0')}_${safeScenario}_${ts}.${ext}`;
+        voiceFolder.file(filename, clip.blob);
+    }
+
+    const zipBlob = await zip.generateAsync({ type: 'blob' });
+    const zipUrl = URL.createObjectURL(zipBlob);
+    const a = document.createElement('a');
+    a.href = zipUrl;
+    a.download = `园区智驾体验分记录_${dateStr}_${timeStr}.zip`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    URL.revokeObjectURL(zipUrl);
 }
 
 // 重置所有记录
@@ -472,6 +887,8 @@ function resetAll() {
     localStorage.removeItem('behaviorCounts');
     localStorage.removeItem('bonusCounts');
     localStorage.removeItem('eventLogs');
+
+    clearAllAudioClips().catch(() => {});
     
     alert('所有记录已重置！');
 }
@@ -480,6 +897,8 @@ function resetAll() {
 document.addEventListener('DOMContentLoaded', function() {
     // 从localStorage加载数据
     loadFromLocalStorage();
+
+    attachVoiceModalHandlers();
     
     // 初始化所有场景（不再显示单个场景得分）
     Object.keys(scenarioRecords).forEach(scenarioName => {
