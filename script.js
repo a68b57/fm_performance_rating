@@ -142,6 +142,9 @@ let voiceAutoSaveOnStop = true;
 let voiceHoldTimer = null;
 let voiceHolding = false;
 let voiceHoldStarted = false;
+let voiceAwaitingPermission = false;
+let voicePendingStopAfterStart = false;
+let voiceStartRequested = false;
 const VOICE_HOLD_MS = 350;
 
 function pickAudioMimeType() {
@@ -205,6 +208,9 @@ function closeVoiceModal() {
     voiceLastBlob = null;
     voiceMimeType = '';
     voiceModalPending = null;
+    voiceAwaitingPermission = false;
+    voicePendingStopAfterStart = false;
+    voiceStartRequested = false;
     const modal = document.getElementById('voice-modal');
     if (modal) {
         modal.classList.remove('voice-modal-open');
@@ -219,6 +225,9 @@ function openVoiceModal(scenarioName, score, recordId) {
     voiceHolding = false;
     voiceHoldStarted = false;
     voiceHoldTimer = null;
+    voiceAwaitingPermission = false;
+    voicePendingStopAfterStart = false;
+    voiceStartRequested = false;
     const ctx = document.getElementById('voice-modal-context');
     if (ctx) {
         const label = SCENARIO_LABELS[scenarioName] || scenarioName;
@@ -262,8 +271,8 @@ function attachVoiceModalHandlers() {
                 if (st) st.textContent = '当前浏览器不支持录音。';
                 return;
             }
-            // 用户松开得过快：不再启动录音
-            if (!voiceHolding) return;
+            // 非长按触发且用户已松开：不启动录音
+            if (!voiceHolding && !voiceStartRequested) return;
             voiceMimeType = pickAudioMimeType();
             try {
                 stopVoiceStream();
@@ -281,7 +290,7 @@ function attachVoiceModalHandlers() {
                     stopVoiceStream();
                     voiceLastBlob = new Blob(voiceChunks, { type: voiceMimeType || 'audio/webm' });
 
-                    // 长按交互：松开后自动保存并关闭弹层，不进入复杂“试听/重录/保存”流程。
+                    // 长按交互：松开后按语义处理（默认“松开取消”：不保存、直接关闭）
                     if (voiceAutoSaveOnStop) {
                         voiceAutoSaveOnStop = false;
 
@@ -311,11 +320,25 @@ function attachVoiceModalHandlers() {
                         return;
                     }
 
+                    // 不自动保存：进入“试听/重录/保存”确认步骤
                     voiceModalSetStep('review');
+                    return;
                 };
                 voiceMediaRecorder.start();
+                voiceAwaitingPermission = false;
                 voiceModalSetStep('recording');
+
+                // 移动端授权弹窗期间可能先触发 pointerup：录音启动后立刻按松开语义停止
+                if (voicePendingStopAfterStart || !voiceHolding) {
+                    voicePendingStopAfterStart = false;
+                    voiceStartRequested = false;
+                    voiceHoldStarted = false;
+                    stopVoiceRecording();
+                }
             } catch (err) {
+                voiceAwaitingPermission = false;
+                voicePendingStopAfterStart = false;
+                voiceStartRequested = false;
                 if (st) st.textContent = '无法访问麦克风：' + (err.message || '请检查权限');
                 stopVoiceStream();
             }
@@ -341,7 +364,11 @@ function attachVoiceModalHandlers() {
             voiceHoldTimer = setTimeout(() => {
                 if (!voiceHolding) return;
                 voiceHoldStarted = true;
-                voiceAutoSaveOnStop = true;
+                voiceStartRequested = true;
+                voiceAwaitingPermission = true;
+                voicePendingStopAfterStart = false;
+                // 默认长按松开取消：停止后丢弃音频，不保存
+                voiceAutoSaveOnStop = false;
                 if (start) start.click();
             }, VOICE_HOLD_MS);
 
@@ -350,14 +377,22 @@ function attachVoiceModalHandlers() {
                 if (voiceHoldTimer) clearTimeout(voiceHoldTimer);
                 voiceHoldTimer = null;
 
+                // 权限弹窗期间触发松开：等录音真正启动后再停止，避免弹窗被提前关闭
+                if (voiceAwaitingPermission) {
+                    voicePendingStopAfterStart = true;
+                    return;
+                }
+
                 // 还没真正开始录音：取消并关闭弹层
                 if (!voiceHoldStarted) {
+                    voiceStartRequested = false;
                     closeVoiceModal();
                     return;
                 }
 
                 // 已开始：松开停止（触发 onstop 自动保存）
                 voiceHoldStarted = false;
+                voiceStartRequested = false;
                 stopVoiceRecording();
             };
 
